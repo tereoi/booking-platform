@@ -9,7 +9,7 @@ interface MainLayoutProps {
   title?: string;
 }
 
-export default function MainLayout({ children, title = 'BookEasy - Scheduling Made Simple' }: MainLayoutProps) {
+export default function MainLayout({ children, title = 'AppointWeb - Scheduling Made Simple' }: MainLayoutProps) {
   return (
     <>
       <Head>

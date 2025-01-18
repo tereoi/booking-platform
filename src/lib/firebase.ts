@@ -1,8 +1,17 @@
 // src/lib/firebase.ts
 import { initializeApp, getApps } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { getAuth, User } from 'firebase/auth';
+import { 
+  getFirestore, 
+  collection, 
+  doc,
+  CollectionReference,
+  DocumentData,
+  QueryDocumentSnapshot,
+} from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
+import { useState, useEffect } from 'react';
+
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -14,21 +23,32 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-let app;
-if (!getApps().length) {
-  app = initializeApp(firebaseConfig);
-} else {
-  app = getApps()[0];
+const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const storage = getStorage(app);
+
+// Helper function voor typed collections
+export function createCollection<T = DocumentData>(path: string) {
+  return collection(db, path) as CollectionReference<T>;
 }
 
-export const auth = getAuth(app);
-export const db = getFirestore(app);
-export const storage = getStorage(app);
+// Helper function voor typed documents
+export function createDoc<T = DocumentData>(collectionPath: string, docId: string) {
+  return doc(db, collectionPath, docId);
+}
+
+// Collection references
+export const getBusinessesCollection = () => createCollection('businesses');
+export const getDeviceTokensCollection = () => createCollection('deviceTokens');
+export const getAppointmentsCollection = (businessId: string) => 
+  createCollection(`businesses/${businessId}/appointments`);
+export const getNotificationsCollection = () => createCollection('notifications');
+
+// Types
+export type FirestoreDoc<T> = QueryDocumentSnapshot<T>;
 
 // Custom hooks
-import { useState, useEffect } from 'react';
-import type { User } from 'firebase/auth';
-
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -44,3 +64,5 @@ export function useAuth() {
 
   return { user, loading };
 }
+
+export { auth, db, storage };

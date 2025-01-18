@@ -9,3 +9,15 @@ declare module '*.css' {
       readFile: (path: string, options?: { encoding?: string }) => Promise<string | ArrayBuffer>;
     };
   }
+
+  export interface Appointment {
+    id: string;
+    customerName: string;
+    customerEmail: string;
+    date: string;
+    time: string;
+    serviceId: string;
+    serviceName: string;  // Deze ontbrak en veroorzaakt errors
+    duration: number;
+    status: 'confirmed' | 'cancelled' | 'completed';
+  }

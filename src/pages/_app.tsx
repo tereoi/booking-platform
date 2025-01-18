@@ -3,6 +3,7 @@ import type { AppProps } from 'next/app'
 import { type NextPage } from 'next'
 import { type ReactElement, type ReactNode } from 'react'
 import '@/styles/global.css'
+import '@/utils/firebase-messaging';
 
 export type NextPageWithLayout<P = {}, IP = P> = NextPage<P, IP> & {
   getLayout?: (page: ReactElement) => ReactNode

@@ -1,150 +1,177 @@
 // src/pages/dashboard/index.tsx
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/router';
-import { auth, db } from '@/lib/firebase';
-import { doc, getDoc } from 'firebase/firestore';
 import { motion } from 'framer-motion';
-import {
-  CalendarDaysIcon,
-  UserGroupIcon,
-  ChartBarIcon,
-  Cog6ToothIcon,
+import DashboardLayout from '@/components/layout/DashboardLayout';
+import { auth, db } from '@/lib/firebase';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import type { Appointment } from '@/types';
+import { 
+  CalendarDaysIcon, 
+  UsersIcon, 
+  CurrencyEuroIcon,
+  ChartBarIcon
 } from '@heroicons/react/24/outline';
 
-export default function Dashboard() {
-  const router = useRouter();
-  const [businessData, setBusinessData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+interface StatCardProps {
+  title: string;
+  value: string | number;
+  icon: any; // We gebruiken 'any' hier omdat de HeroIcons types complex zijn
+  color: string;
+}
+
+const StatCard: React.FC<StatCardProps> = ({ title, value, icon: Icon, color }) => (
+  <motion.div
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    className="bg-white rounded-xl p-6 shadow-sm"
+  >
+    <div className={`w-12 h-12 ${color} rounded-lg flex items-center justify-center mb-4`}>
+      <Icon className="w-6 h-6 text-white" />
+    </div>
+    <h3 className="text-gray-500 text-sm">{title}</h3>
+    <p className="text-2xl font-bold mt-1">{value}</p>
+  </motion.div>
+);
+
+const statCards = [
+  {
+    title: "Afspraken Vandaag",
+    value: 0,
+    icon: CalendarDaysIcon,
+    color: "bg-blue-500"
+  },
+  {
+    title: "Afspraken deze Maand",
+    value: 0,
+    icon: ChartBarIcon,
+    color: "bg-green-500"
+  },
+  {
+    title: "Totaal Klanten",
+    value: 0,
+    icon: UsersIcon,
+    color: "bg-purple-500"
+  },
+  {
+    title: "Omzet deze Maand",
+    value: "€0",
+    icon: CurrencyEuroIcon,
+    color: "bg-gray-700"
+  }
+];
+
+export default function DashboardPage() {
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [stats, setStats] = useState({
+    todayAppointments: 0,
+    monthlyAppointments: 0,
+    totalCustomers: 0,
+    revenue: 0
+  });
 
   useEffect(() => {
-    const checkAuth = async () => {
+    const fetchData = async () => {
       const user = auth.currentUser;
-      
-      if (!user) {
-        router.push('/login');
-        return;
-      }
+      if (!user) return;
 
-      if (!user.emailVerified) {
-        router.push('/verify-email');
-        return;
-      }
+      // Fetch vandaag's afspraken
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const appointmentsRef = collection(db, 'businesses', user.uid, 'appointments');
+      const q = query(appointmentsRef, where('date', '>=', today));
 
       try {
-        const businessDoc = await getDoc(doc(db, 'businesses', user.uid));
-        if (businessDoc.exists()) {
-          setBusinessData(businessDoc.data());
-        }
+        const querySnapshot = await getDocs(q);
+        const appointmentsData = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })) as Appointment[];
+        
+        setAppointments(appointmentsData);
+
+        // Update statistieken
+        setStats({
+          todayAppointments: appointmentsData.length,
+          monthlyAppointments: 45, // Voorbeeld data
+          totalCustomers: 128, // Voorbeeld data
+          revenue: 2850 // Voorbeeld data
+        });
       } catch (error) {
-        console.error('Error fetching business data:', error);
-      } finally {
-        setLoading(false);
+        console.error('Error fetching appointments:', error);
       }
     };
 
-    checkAuth();
-  }, [router]);
+    fetchData();
+  }, []);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
-      </div>
-    );
-  }
-
-  const quickActions = [
-    {
-      title: 'Nieuwe Afspraak',
-      icon: CalendarDaysIcon,
-      color: 'bg-blue-500',
-      onClick: () => router.push('/dashboard/appointments/new')
-    },
-    {
-      title: 'Klanten',
-      icon: UserGroupIcon,
-      color: 'bg-green-500',
-      onClick: () => router.push('/dashboard/customers')
-    },
-    {
-      title: 'Statistieken',
-      icon: ChartBarIcon,
-      color: 'bg-purple-500',
-      onClick: () => router.push('/dashboard/statistics')
-    },
-    {
-      title: 'Instellingen',
-      icon: Cog6ToothIcon,
-      color: 'bg-gray-500',
-      onClick: () => router.push('/dashboard/settings')
-    }
+  // Update de statCards met actuele data
+  const updatedStatCards = [
+    { ...statCards[0], value: stats.todayAppointments },
+    { ...statCards[1], value: stats.monthlyAppointments },
+    { ...statCards[2], value: stats.totalCustomers },
+    { ...statCards[3], value: `€${stats.revenue}` }
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Top Bar */}
-      <div className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16 items-center">
-            <h1 className="text-xl font-bold">Dashboard</h1>
-            <button
-              onClick={() => auth.signOut()}
-              className="text-gray-600 hover:text-gray-900"
-            >
-              Uitloggen
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Welcome Section */}
+    <DashboardLayout>
+      <div className="space-y-6">
+        {/* Welkom sectie */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="glass-panel rounded-2xl p-6 mb-8"
+          className="bg-white rounded-xl p-6 shadow-sm"
         >
-          <h2 className="text-2xl font-bold mb-2">
-            Welkom terug, {businessData?.businessName}
-          </h2>
-          <p className="text-gray-600">
-            Hier is een overzicht van je afspraken en activiteiten.
+          <h2 className="text-2xl font-bold">Goedemorgen!</h2>
+          <p className="text-gray-600 mt-1">
+            Hier is een overzicht van je afspraken en statistieken.
           </p>
         </motion.div>
 
-        {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          {quickActions.map((action, index) => (
-            <motion.div
-              key={action.title}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-              onClick={action.onClick}
-              className="glass-panel rounded-xl p-4 cursor-pointer hover:shadow-lg transition-all"
-            >
-              <div className={`${action.color} w-12 h-12 rounded-lg flex items-center justify-center mb-4`}>
-                <action.icon className="w-6 h-6 text-white" />
-              </div>
-              <h3 className="font-semibold">{action.title}</h3>
-            </motion.div>
+        {/* Statistieken Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {updatedStatCards.map((stat, index) => (
+            <StatCard
+              key={index}
+              title={stat.title}
+              value={stat.value}
+              icon={stat.icon}
+              color={stat.color}
+            />
           ))}
         </div>
 
-        {/* Today's Appointments */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="glass-panel rounded-2xl p-6"
-        >
-          <h3 className="text-xl font-bold mb-4">Vandaag</h3>
-          <div className="text-gray-600">
-            Nog geen afspraken voor vandaag.
+        {/* Vandaag's Afspraken */}
+        <div className="bg-white rounded-xl shadow-sm">
+          <div className="p-6 border-b">
+            <h3 className="text-lg font-semibold">Vandaag's Afspraken</h3>
           </div>
-        </motion.div>
-      </main>
-    </div>
+          <div className="divide-y">
+            {appointments.length > 0 ? (
+              appointments.map((appointment) => (
+                <div 
+                  key={appointment.id}
+                  className="flex items-center justify-between p-4 hover:bg-gray-50"
+                >
+                  <div>
+                    <p className="font-medium">{appointment.customerName}</p>
+                    <p className="text-sm text-gray-500">{appointment.time}</p>
+                  </div>
+                  <span className={`px-3 py-1 rounded-full text-sm ${
+                    appointment.status === 'confirmed' 
+                      ? 'bg-green-100 text-green-800' 
+                      : 'bg-yellow-100 text-yellow-800'
+                  }`}>
+                    {appointment.status}
+                  </span>
+                </div>
+              ))
+            ) : (
+              <p className="text-gray-500 p-6">Geen afspraken voor vandaag.</p>
+            )}
+          </div>
+        </div>
+      </div>
+    </DashboardLayout>
   );
 }

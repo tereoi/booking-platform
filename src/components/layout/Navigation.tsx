@@ -23,7 +23,7 @@ export default function Navigation() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16 items-center">
           <Link href="/" className="font-bold text-xl">
-            BookEasy
+          AppointWeb
           </Link>
 
           <div className="hidden md:flex items-center space-x-8">
