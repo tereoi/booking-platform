@@ -1,4 +1,3 @@
-// src/components/layout/DashboardLayout.tsx
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
@@ -21,6 +20,11 @@ interface DashboardLayoutProps {
   children: React.ReactNode;
 }
 
+interface BusinessData {
+  name?: string;
+  email?: string;
+}
+
 const navigationItems = [
   { name: 'Dashboard', href: '/dashboard', icon: CalendarDaysIcon },
   { name: 'Afspraken', href: '/dashboard/appointments', icon: CalendarDaysIcon },
@@ -32,7 +36,7 @@ const navigationItems = [
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const router = useRouter();
-  const [businessData, setBusinessData] = useState<any>(null);
+  const [businessData, setBusinessData] = useState<BusinessData | null>(null);
   const [loading, setLoading] = useState(true);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -55,7 +59,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       try {
         const businessDoc = await getDoc(doc(db, 'businesses', user.uid));
         if (businessDoc.exists()) {
-          setBusinessData(businessDoc.data());
+          setBusinessData(businessDoc.data() as BusinessData);
         }
       } catch (error) {
         console.error('Error fetching business data:', error);
@@ -70,14 +74,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   useEffect(() => {
     setIsMobileMenuOpen(false);
   }, [router.pathname]);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
-      </div>
-    );
-  }
 
   if (loading) {
     return (
@@ -246,7 +242,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 >
                   <UserCircleIcon className="w-6 h-6 text-gray-600" />
                   <span className="text-sm font-medium hidden sm:block">
-                    {businessData?.businessName}
+                    {businessData?.name}
                   </span>
                 </button>
                 <AnimatePresence>

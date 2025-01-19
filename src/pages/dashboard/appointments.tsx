@@ -1,4 +1,4 @@
-// src/pages/dashboard/appointments/index.tsx
+// src/pages/dashboard/appointments.tsx
 import { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import Calendar from '@/components/appointments/Calendar';

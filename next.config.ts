@@ -1,4 +1,4 @@
-// next.config.ts
+// next.config.js
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
@@ -6,33 +6,50 @@ const nextConfig = {
     domains: ['firebasestorage.googleapis.com', 'res.cloudinary.com'],
   },
   async rewrites() {
-    return {
-      beforeFiles: [
-        // Handle business subdomains in production
-        {
-          source: '/:path*',
-          has: [
-            {
-              type: 'host',
-              value: '(?<businessId>.*)\\.appointweb\\.nl',
-            },
-          ],
-          destination: '/business/:businessId/:path*',
-        },
-        // Handle local development with query parameter
+    if (process.env.NODE_ENV === 'development') {
+      // Development rewrites voor lokaal testen
+      return [
         {
           source: '/:path*',
           has: [
             {
               type: 'query',
-              key: 'business',
-            },
+              key: 'business'
+            }
           ],
-          destination: '/business/:business/:path*',
-        },
-      ],
+          destination: '/:path*'
+        }
+      ];
+    } else {
+      // Productie rewrites voor subdomains
+      return [
+        {
+          source: '/:path*',
+          has: [
+            {
+              type: 'host',
+              value: '(?<businessId>.*)\\.appointweb\\.nl'
+            }
+          ],
+          destination: '/:path*'
+        }
+      ];
     }
   },
+  // Custom hostname config voor development
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          {
+            key: 'Access-Control-Allow-Origin',
+            value: '*'
+          }
+        ]
+      }
+    ];
+  }
 }
 
-module.exports = nextConfig
+module.exports = nextConfig;

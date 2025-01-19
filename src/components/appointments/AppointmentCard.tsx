@@ -5,7 +5,6 @@ import { doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { toast } from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  PencilIcon, 
   TrashIcon, 
   XMarkIcon,
   CheckIcon 

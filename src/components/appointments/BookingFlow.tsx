@@ -4,19 +4,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import type { Business } from '@/types/business';
 import Calendar from './Calendar';
 import TimeSlotSelector from './TimeSlotSelector';
+import { NotificationService } from '@/utils/NotificationService';
+import { db } from '@/lib/firebase';
+import { addDoc, collection, doc, getDoc } from 'firebase/firestore';
 
 interface BookingFlowProps {
   business: Business;
   onComplete: () => void;
-}
-
-interface CustomField {
-  id: string;
-  label: string;
-  value: string;
-  type: 'text' | 'select' | 'checkbox';
-  required: boolean;
-  options?: string[];
 }
 
 export default function BookingFlow({ business, onComplete }: BookingFlowProps) {
@@ -24,6 +18,8 @@ export default function BookingFlow({ business, onComplete }: BookingFlowProps) 
   const [selectedService, setSelectedService] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -40,12 +36,67 @@ export default function BookingFlow({ business, onComplete }: BookingFlowProps) 
   };
 
   const handleSubmit = async () => {
+    if (!selectedService || !selectedDate || !selectedTime || !formData.email) {
+      setError('Vul alle verplichte velden in');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
     try {
-      // Implementeer hier de logica voor het opslaan van de afspraak
-      // Gebruik de NotificationService om meldingen te versturen
+      // Service details ophalen
+      const service = business.settings.services.find(s => s.id === selectedService);
+      if (!service) throw new Error('Service niet gevonden');
+
+      // Appointment aanmaken
+      const appointmentRef = collection(db, 'businesses', business.id, 'appointments');
+      const appointment = {
+        serviceId: selectedService,
+        serviceName: service.name,
+        date: selectedDate.toISOString().split('T')[0],
+        time: selectedTime,
+        duration: service.duration,
+        customerName: formData.name,
+        customerEmail: formData.email,
+        customerPhone: formData.phone,
+        notes: formData.message,
+        customFields: formData.customFields,
+        status: 'confirmed' as 'confirmed',
+        createdAt: new Date().toISOString()
+      };
+
+      const docRef = await addDoc(appointmentRef, appointment);
+      const appointmentId = docRef.id;
+
+      // Notifications versturen
+      await NotificationService.sendCustomerNotification('new', {
+        ...appointment,
+        id: appointmentId
+      });
+
+      // Business notifications (als er preferences zijn ingesteld)
+      const preferencesDoc = await getDoc(doc(db, 'businesses', business.id));
+      const preferences = preferencesDoc.data()?.notificationPreferences;
+
+      if (preferences) {
+        await NotificationService.sendBusinessNotification(
+          'new',
+          {
+            ...appointment,
+            id: appointmentId
+          },
+          business.id,
+          preferences
+        );
+      }
+
       onComplete();
-    } catch (error) {
-      console.error('Error creating appointment:', error);
+    } catch (err: any) {
+      console.error('Error creating appointment:', err);
+      setError('Er ging iets mis bij het maken van de afspraak. Probeer het opnieuw.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -330,9 +381,10 @@ export default function BookingFlow({ business, onComplete }: BookingFlowProps) 
               </button>
               <button
                 onClick={handleSubmit}
+                disabled={loading}
                 className="button-primary flex-grow"
               >
-                Bevestig afspraak
+                {loading ? 'Moment geduld...' : 'Bevestig afspraak'}
               </button>
             </div>
           </motion.div>

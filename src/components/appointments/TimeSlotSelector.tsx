@@ -19,6 +19,19 @@ interface TimeSlot {
   available: boolean;
 }
 
+interface Service {
+  id: string;
+  name: string;
+  duration: number;
+}
+
+interface BusinessData {
+  settings?: {
+    workingHours: Record<string, { isOpen: boolean; start: string; end: string }>;
+  };
+  services: Service[];
+}
+
 export default function TimeSlotSelector({
   date,
   selectedTime,
@@ -38,20 +51,17 @@ export default function TimeSlotSelector({
         const user = auth.currentUser;
         if (!user) throw new Error('Niet ingelogd');
 
-        // Haal bedrijfsinstellingen op
         const businessDoc = await getDoc(doc(db, 'businesses', user.uid));
         if (!businessDoc.exists()) throw new Error('Bedrijf niet gevonden');
 
-        const businessData = businessDoc.data();
+        const businessData = businessDoc.data() as BusinessData;
         const workingHours = businessData.settings?.workingHours;
         if (!workingHours) throw new Error('Werktijden niet ingesteld');
 
-        // Haal service informatie op
         const services = businessData.services || [];
-        const service = services.find((s: any) => s.id === serviceId);
+        const service = services.find((s: Service) => s.id === serviceId);
         if (!service) throw new Error('Dienst niet gevonden');
 
-        // Haal bestaande afspraken op
         const appointmentsRef = collection(db, 'businesses', user.uid, 'appointments');
         const appointmentsQuery = query(
           appointmentsRef,
@@ -62,7 +72,6 @@ export default function TimeSlotSelector({
           ...doc.data()
         })) as Appointment[];
 
-        // Genereer beschikbare tijdslots
         const slots = TimeSlotManager.generateTimeSlots(
           date,
           workingHours,
@@ -71,9 +80,10 @@ export default function TimeSlotSelector({
         );
 
         setTimeSlots(slots);
-      } catch (err: any) {
-        console.error('Error fetching time slots:', err);
-        setError(err.message);
+      } catch (err: unknown) {
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        console.error('Error fetching time slots:', errorMessage);
+        setError(errorMessage);
       } finally {
         setLoading(false);
       }
@@ -81,6 +91,7 @@ export default function TimeSlotSelector({
 
     fetchTimeSlots();
   }, [date, serviceId]);
+
 
   if (loading) {
     return (

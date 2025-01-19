@@ -25,6 +25,13 @@ interface FormData {
   confirmPassword?: string;
 }
 
+// Nieuwe interface voor business setup
+interface BusinessSetupData {
+  name: string;
+  email: string;
+  customUrl?: string;
+}
+
 const getErrorMessage = (error: AuthError) => {
   switch (error.code) {
     case 'auth/invalid-credential':
@@ -126,11 +133,13 @@ export default function AuthForm({ mode }: AuthFormProps) {
         await sendEmailVerification(userCredential.user);
 
         // Setup het nieuwe bedrijf met alle default waardes
-        await setupNewBusiness(userCredential.user.uid, {
+        const businessData: BusinessSetupData = {
           name: formData.businessName,
           email: formData.email,
           customUrl: formData.customUrl
-        });
+        };
+
+        await setupNewBusiness(userCredential.user.uid, businessData);
 
         toast.success('Account succesvol aangemaakt! Check je email.');
         router.push('/verify-email');

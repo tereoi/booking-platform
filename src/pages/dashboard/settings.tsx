@@ -1,7 +1,7 @@
-// src/pages/dashboard/settings/index.tsx
+// src/pages/dashboard/settings.tsx
 import { useState } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import WorkingHoursSettings from '../../../components/settings/WorkingHoursSettings';
+import WorkingHoursSettings from '@/components/settings/WorkingHoursSettings';
 import ServicesSettings from '@/components/settings/ServicesSettings';
 import NotificationSettings from '@/components/settings/NotificationSettings';
 import BusinessSettings from '@/components/settings/BusinessSettings';

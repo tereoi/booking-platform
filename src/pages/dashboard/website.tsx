@@ -1,4 +1,4 @@
-// src/pages/dashboard/website/index.tsx
+// src/pages/dashboard/website.tsx
 import { useEffect, useState } from 'react';
 import { auth, db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
