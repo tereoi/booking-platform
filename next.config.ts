@@ -8,7 +8,7 @@ const nextConfig = {
   async rewrites() {
     return {
       beforeFiles: [
-        // Handle business subdomains
+        // Handle business subdomains in production
         {
           source: '/:path*',
           has: [
@@ -17,7 +17,18 @@ const nextConfig = {
               value: '(?<businessId>.*)\\.appointweb\\.nl',
             },
           ],
-          destination: '/book/:businessId/:path*',
+          destination: '/business/:businessId/:path*',
+        },
+        // Handle local development with query parameter
+        {
+          source: '/:path*',
+          has: [
+            {
+              type: 'query',
+              key: 'business',
+            },
+          ],
+          destination: '/business/:business/:path*',
         },
       ],
     }
